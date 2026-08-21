@@ -1,143 +1,54 @@
-# Technical Context: Next.js Starter Template
+# Technical Context: Companion
 
 ## Technology Stack
 
-| Technology   | Version | Purpose                         |
-| ------------ | ------- | ------------------------------- |
-| Next.js      | 16.x    | React framework with App Router |
-| React        | 19.x    | UI library                      |
-| TypeScript   | 5.9.x   | Type-safe JavaScript            |
-| Tailwind CSS | 4.x     | Utility-first CSS               |
-| Bun          | Latest  | Package manager & runtime       |
+| Technology | Version | Purpose |
+| ---------- | ------- | ------- |
+| Next.js | 16.x | Framework (App Router) |
+| React | 19.x | UI |
+| TypeScript | 5.9.x | Type safety |
+| Tailwind CSS | 4.x | Styling |
+| Bun | Latest | Package manager & runtime |
+| Drizzle ORM | 0.45.x | ORM |
+| drizzle-kit | 0.31.x | Migrations |
+| @kilocode/app-builder-db | github | SQLite via HTTP API client |
 
-## Development Environment
+## Environment Variables
 
-### Prerequisites
+| Variable | Purpose |
+| -------- | ------- |
+| `DB_URL`, `DB_TOKEN` | Sandbox DB (auto-provided) |
+| `CHAT_API_KEY`, `CHAT_API_BASE_URL`, `CHAT_MODEL` | Chat model provider |
+| `MODERATION_API_URL`, `MODERATION_API_KEY` | External safety classifier |
+| `EMBEDDING_API_URL`, `EMBEDDING_API_KEY` | Embeddings for RAG |
+| `ELEVENLABS_API_KEY`, `DEEPGRAM_API_KEY` | Voice TTS/STT |
+| `STABILITY_API_KEY` | Image generation |
+| `AVATAR_SYNTHESIS_API_KEY` | Video synthesis |
+| `IDENTITY_VERIFICATION_PROVIDER` | Age verification provider |
 
-- Bun installed (`curl -fsSL https://bun.sh/install | bash`)
-- Node.js 20+ (for compatibility)
-
-### Commands
+## Commands
 
 ```bash
 bun install        # Install dependencies
-bun dev            # Start dev server (http://localhost:3000)
-bun build          # Production build
-bun start          # Start production server
-bun lint           # Run ESLint
-bun typecheck      # Run TypeScript type checking
+bun typecheck      # tsc --noEmit
+bun lint           # ESLint
+bun db:generate    # Generate migration SQL
+bun db:migrate     # Apply migrations (never run manually in sandbox — auto after push)
 ```
 
-## Project Configuration
+## Database Schema
 
-### Next.js Config (`next.config.ts`)
+`users`, `personas`, `conversations`, `messages`, `memories`, `security_events`.
 
-- App Router enabled
-- Default settings for flexibility
-
-### TypeScript Config (`tsconfig.json`)
-
-- Strict mode enabled
-- Path alias: `@/*` → `src/*`
-- Target: ESNext
-
-### Tailwind CSS 4 (`postcss.config.mjs`)
-
-- Uses `@tailwindcss/postcss` plugin
-- CSS-first configuration (v4 style)
-
-### ESLint (`eslint.config.mjs`)
-
-- Uses `eslint-config-next`
-- Flat config format
+Timestamps stored as integer epoch (Drizzle `mode: "timestamp"`) with `$defaultFn` (app-level default, no SQL DEFAULT). JSON stored as text columns (personaIds, shortTerm, embedding, voiceConfig).
 
 ## Key Dependencies
 
-### Production Dependencies
+- `drizzle-orm`, `drizzle-kit`, `@kilocode/app-builder-db`
+- DB accessed via HTTP API (`drizzle-orm/sqlite-proxy`); only usable server-side
 
-```json
-{
-  "next": "^16.1.3", // Framework
-  "react": "^19.2.3", // UI library
-  "react-dom": "^19.2.3" // React DOM
-}
-```
+## Constraints
 
-### Dev Dependencies
-
-```json
-{
-  "typescript": "^5.9.3",
-  "@types/node": "^24.10.2",
-  "@types/react": "^19.2.7",
-  "@types/react-dom": "^19.2.3",
-  "@tailwindcss/postcss": "^4.1.17",
-  "tailwindcss": "^4.1.17",
-  "eslint": "^9.39.1",
-  "eslint-config-next": "^16.0.0"
-}
-```
-
-## File Structure
-
-```
-/
-├── .gitignore              # Git ignore rules
-├── package.json            # Dependencies and scripts
-├── bun.lock                # Bun lockfile
-├── next.config.ts          # Next.js configuration
-├── tsconfig.json           # TypeScript configuration
-├── postcss.config.mjs      # PostCSS (Tailwind) config
-├── eslint.config.mjs       # ESLint configuration
-├── public/                 # Static assets
-│   └── .gitkeep
-└── src/                    # Source code
-    └── app/                # Next.js App Router
-        ├── layout.tsx      # Root layout
-        ├── page.tsx        # Home page
-        ├── globals.css     # Global styles
-        └── favicon.ico     # Site icon
-```
-
-## Technical Constraints
-
-### Starting Point
-
-- Minimal structure - expand as needed
-- No database by default (use recipe to add)
-- No authentication by default (add when needed)
-
-### Browser Support
-
-- Modern browsers (ES2020+)
-- No IE11 support
-
-## Performance Considerations
-
-### Image Optimization
-
-- Use Next.js `Image` component for optimization
-- Place images in `public/` directory
-
-### Bundle Size
-
-- Tree-shaking enabled by default
-- Tailwind CSS purges unused styles
-
-### Core Web Vitals
-
-- Server Components reduce client JavaScript
-- Streaming and Suspense for better UX
-
-## Deployment
-
-### Build Output
-
-- Server-rendered pages by default
-- Can be configured for static export
-
-### Environment Variables
-
-- None required for base template
-- Add as needed for features
-- Use `.env.local` for local development
+- `DB_URL`/`DB_TOKEN` must be set at runtime or `createDatabase` throws
+- Migrations auto-run in sandbox after push; never `bun db:migrate` locally
+- Next.js Google fonts (`Geist`) kept from template

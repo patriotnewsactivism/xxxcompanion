@@ -1,87 +1,46 @@
-# Active Context: Next.js Starter Template
+# Active Context: Companion
 
 ## Current State
 
-**Template Status**: ✅ Ready for development
+**Status**: ✅ MVP scaffold implemented — typechecks and lints clean.
 
-The template is a clean Next.js 16 starter with TypeScript and Tailwind CSS 4. It's ready for AI-assisted expansion to build any type of application.
+The template has been expanded into an adult AI companion platform with age gating, safety moderation, persona-based chat, memory, and tiering.
 
 ## Recently Completed
 
-- [x] Base Next.js 16 setup with App Router
-- [x] TypeScript configuration with strict mode
-- [x] Tailwind CSS 4 integration
-- [x] ESLint configuration
-- [x] Memory bank documentation
-- [x] Recipe system for common features
+- [x] Database layer (Drizzle + `@kilocode/app-builder-db`) with 6 tables + generated migration
+- [x] Safety layer: moderation classifier (local rules + external stub), security logging, age gate, identity-verification stub
+- [x] Persona engine: 5 presets, system-prompt builder, custom persona resolution
+- [x] Memory: short-term sliding window + long-term RAG stub (keyword overlap + embeddings stub)
+- [x] AI provider with OpenAI-compatible fetch + deterministic fallback
+- [x] Voice/image/video integration stubs (premium-gated)
+- [x] Tiering: `TIER_FEATURES` + daily rate limit (free = 20 msgs/day)
+- [x] API routes: verify-age, chat, personas, account
+- [x] UI: age gate + chat with persona picker
+- [x] `bun typecheck` and `bun lint` pass
 
 ## Current Structure
 
-| File/Directory | Purpose | Status |
-|----------------|---------|--------|
-| `src/app/page.tsx` | Home page | ✅ Ready |
-| `src/app/layout.tsx` | Root layout | ✅ Ready |
-| `src/app/globals.css` | Global styles | ✅ Ready |
-| `.kilocode/` | AI context & recipes | ✅ Ready |
+| Area | Files | Status |
+|------|-------|--------|
+| DB | `src/db/*`, `drizzle.config.ts` | ✅ |
+| Safety | `src/lib/safety/*` | ✅ |
+| Persona | `src/lib/persona/*` | ✅ |
+| Memory | `src/lib/memory/*` | ✅ |
+| AI | `src/lib/ai/*` | ✅ |
+| API | `src/app/api/*/route.ts` | ✅ |
+| UI | `src/components/*`, `page.tsx`, `chat/page.tsx` | ✅ |
 
-## Current Focus
+## Current Focus / Pending
 
-The template is ready. Next steps depend on user requirements:
-
-1. What type of application to build
-2. What features are needed
-3. Design/branding preferences
-
-## Quick Start Guide
-
-### To add a new page:
-
-Create a file at `src/app/[route]/page.tsx`:
-```tsx
-export default function NewPage() {
-  return <div>New page content</div>;
-}
-```
-
-### To add components:
-
-Create `src/components/` directory and add components:
-```tsx
-// src/components/ui/Button.tsx
-export function Button({ children }: { children: React.ReactNode }) {
-  return <button className="px-4 py-2 bg-blue-600 text-white rounded">{children}</button>;
-}
-```
-
-### To add a database:
-
-Follow `.kilocode/recipes/add-database.md`
-
-### To add API routes:
-
-Create `src/app/api/[route]/route.ts`:
-```tsx
-import { NextResponse } from "next/server";
-
-export async function GET() {
-  return NextResponse.json({ message: "Hello" });
-}
-```
-
-## Available Recipes
-
-| Recipe | File | Use Case |
-|--------|------|----------|
-| Add Database | `.kilocode/recipes/add-database.md` | Data persistence with Drizzle + SQLite |
-
-## Pending Improvements
-
-- [ ] Add more recipes (auth, email, etc.)
-- [ ] Add example components
-- [ ] Add testing setup recipe
+- Voice/image/video integrations are stubs — wire to real providers (ElevenLabs, Deepgram, Stability, avatar synth)
+- Replace self-reported age gate with real third-party identity verification
+- External classifier + embedding endpoints need to be configured via env vars
+- No streaming responses yet (non-streaming JSON)
+- Multi-character mode declared in model but returns single-turn response
 
 ## Session History
 
 | Date | Changes |
 |------|---------|
-| Initial | Template created with base setup |
+| 2026-08-21 | Built full MVP scaffold from system spec: safety, personas, memory, tiering, AI provider, API routes, UI |

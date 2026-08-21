@@ -1,48 +1,45 @@
-# Project Brief: Next.js Starter Template
+# Project Brief: Companion — AI Adult Companion Platform
 
 ## Purpose
 
-This is a minimal Next.js starter template designed for AI-assisted development. It provides a clean foundation that can be extended to build any type of web application through interaction with an AI assistant.
+An adult-oriented AI companion platform for verified adults (18+ / 21+ by jurisdiction). Users chat with adaptive AI personas (romantic partner, BDSM dynamics, flirtatious companion, immersive roleplay) with short- and long-term memory, voice/visual generation, and free/premium tiering.
 
 ## Target Users
 
-- Developers wanting a clean Next.js starting point
-- Users building applications through AI-assisted coding
-- Teams needing a standardized, modern Next.js setup
+- Verified adults (18+) seeking AI companionship and adult roleplay
+- Consent-focused users who expect clear safety guardrails
 
-## Core Use Case
+## Core Use Cases
 
-Users describe what they want to build to an AI assistant, which then expands this template by:
-
-1. Adding components and pages as needed
-2. Installing additional dependencies
-3. Setting up databases, authentication, etc. using recipes
-4. Customizing styling and branding
+1. Age-gated access via self-reported DOB (with third-party identity verification as the production path)
+2. Persona-driven conversational roleplay in single- or multi-character modes
+3. Persistent memory: short-term session context + long-term user-keyed memory (premium)
+4. Tiered monetization: free text-only vs premium voice/image/video/multi-character/custom personas
 
 ## Key Requirements
 
 ### Must Have
 
-- Modern Next.js 16 setup with App Router
-- TypeScript for type safety
-- Tailwind CSS 4 for styling
-- ESLint for code quality
-- Clean, minimal starting structure
-- Bun as package manager
+- Third-party age verification gating (stubbed identity verification provider)
+- Zero-tolerance safety pipeline: input/output moderation classifiers + security logging
+- Persona engine with presets + custom personas
+- Memory: short-term window + long-term RAG stub
+- Free vs premium tiering with feature flags and daily rate limit
+- Multi-character speaker tokens
 
 ### Nice to Have
 
-- Recipe system for common additions (database, auth)
-- Memory bank for AI context persistence
-- Clear development guidelines
+- Voice (TTS/STT), image, and video generation (integration stubs, premium-gated)
 
 ## Success Metrics
 
-- Clean, zero-error TypeScript setup
-- Passing lint and type checks
+- Clean typecheck and lint
+- Working chat pipeline with safety enforcement
+- Migrations runnable in sandbox
 
 ## Constraints
 
-- Minimal dependencies by default
 - Framework: Next.js 16 + React 19 + Tailwind CSS 4
 - Package manager: Bun
+- DB: Drizzle + SQLite via `@kilocode/app-builder-db` (HTTP API)
+- Adult content only, strict 18+ gating, no minors, no non-consensual content

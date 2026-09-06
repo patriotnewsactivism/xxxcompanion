@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { authFetch } from "@/lib/bridgeClient";
 import type { UserProfile } from "@/lib/types";
 import { kinkLabel, normalizeTags } from "@/lib/kinks/taxonomy";
 import KinkPicker from "@/components/KinkPicker";
@@ -107,7 +108,7 @@ export default function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch("/api/profile");
+        const res = await authFetch("/api/profile");
         if (!res.ok) {
           if (!cancelled) setError("Failed to load your profile.");
           return;
@@ -152,7 +153,7 @@ export default function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
     setSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/profile", {
+      const res = await authFetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

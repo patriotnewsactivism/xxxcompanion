@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { getSessionUserId } from "@/lib/session";
+import { getSessionUserIdForRequest } from "@/lib/session";
 import { computeAge, MINIMUM_AGE } from "@/lib/safety/ageGate";
 
 export async function POST(request: Request) {
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const userId = await getSessionUserId();
+  const userId = await getSessionUserIdForRequest(request);
   let id = userId;
 
   if (id) {
@@ -64,6 +64,8 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true });
+  // Standalone flow keeps the cookie session; in Surge's iframe the
+  // cookies are third-party and get dropped — the bearer token covers it.
   response.cookies.set("user_id", String(id), {
     httpOnly: true,
     sameSite: "lax",

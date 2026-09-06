@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authFetch } from "@/lib/bridgeClient";
 import type { ChatResponse, Persona, Tier } from "@/lib/types";
 import { EXPLICITNESS_LABELS } from "@/lib/persona/options";
 import { kinkLabel } from "@/lib/kinks/taxonomy";
@@ -49,7 +50,7 @@ export default function ChatApp() {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch("/api/personas");
+        const res = await authFetch("/api/personas");
         if (!res.ok) {
           setError("Failed to load personas.");
           return;
@@ -100,7 +101,7 @@ export default function ChatApp() {
     ]);
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await authFetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

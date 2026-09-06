@@ -17,6 +17,7 @@ export const users = pgTable("users", {
   dailyMessageCount: integer("daily_message_count").notNull().default(0),
   messageWindowStart: timestamp("message_window_start"),
   createdAt: timestamp("created_at").$defaultFn(() => new Date()),
+  surgeSub: text("surge_sub"),
 });
 
 export const personas = pgTable("personas", {

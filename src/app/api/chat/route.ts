@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     personaId?: string;
     mode?: ConversationMode;
     message?: string;
+    voiceMode?: boolean;
   };
   try {
     body = await request.json();
@@ -251,6 +252,7 @@ export async function POST(request: Request) {
     memories,
     shortTerm: recentMessages,
     profile: profile ?? undefined,
+    voiceMode: Boolean(body.voiceMode),
   });
 
   const temperature =

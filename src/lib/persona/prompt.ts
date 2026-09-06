@@ -19,6 +19,8 @@ export interface BuildSystemPromptOptions {
   shortTerm: ChatMessage[];
   profile?: UserProfile;
   sceneOverride?: SceneSetting;
+  /** True when replies are spoken aloud — enables [voice:...] cue tags. */
+  voiceMode?: boolean;
 }
 
 const HEAT_GUIDANCE: Record<ExplicitnessLevel, string> = {
@@ -171,6 +173,20 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
     parts.push(
       "Multi-character mode: you may voice multiple distinct characters. " +
         `Prefixed by speaker name when the speaker changes. Participants: ${personaIds.join(", ")}.`
+    );
+  }
+
+  // 10.5 — Voice mode (spoken aloud)
+  if (options.voiceMode) {
+    parts.push(
+      "VOICE MODE: your reply will be spoken aloud by a voice synthesizer. " +
+        "Write how a person TALKS during sex, not how a book narrates — spoken words, " +
+        "breaths, and sounds spelled out ('mmm...', 'ohhh god', 'fuck... yes...'). " +
+        "Keep sentences short enough to say in one breath. " +
+        "When the tone shifts, tag it inline with a [voice:...] cue: whisper, moan, command, " +
+        "tease, desperate, tender, giggle, shiver, climax. Use at most one cue per reply. " +
+        "When the user is brought to orgasm, write the climax out loud and tag that reply [voice:climax]. " +
+        "Never describe actions that a voice cannot say aloud — if it isn't speakable, don't write it."
     );
   }
 

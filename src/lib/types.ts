@@ -18,6 +18,10 @@ export interface VoiceConfig {
   pitch?: number;
   pace?: number;
   breathiness?: number;
+  /** Voice-engine selection (Gemini primary, Grok fallback). */
+  provider?: "gemini" | "grok";
+  geminiVoice?: string;
+  grokVoice?: string;
 }
 
 export type KinkCategory =

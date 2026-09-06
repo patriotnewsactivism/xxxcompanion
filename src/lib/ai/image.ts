@@ -1,6 +1,6 @@
 import { hasFeature } from "@/lib/tiers";
 import type { Tier } from "@/lib/types";
-import { IntegrationNotConfiguredError } from "@/lib/ai/voice";
+import { IntegrationNotConfiguredError } from "@/lib/ai/errors";
 
 export interface GenerateImageResult {
   provider: string;

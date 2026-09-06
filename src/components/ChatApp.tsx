@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authFetch } from "@/lib/bridgeClient";
+import { blobToBase64, firstVoiceCue, stripVoiceCues, WavRecorder } from "@/lib/wavRecorder";
+import { defaultVoice, type VoiceIntensity, type VoiceMood, type VoiceSelection } from "@/lib/ai/voice";
+import VoicePanel from "@/components/VoicePanel";
 import type { ChatResponse, Persona, Tier } from "@/lib/types";
 import { EXPLICITNESS_LABELS } from "@/lib/persona/options";
 import { kinkLabel } from "@/lib/kinks/taxonomy";
@@ -43,6 +46,17 @@ export default function ChatApp() {
   const [terminationReason, setTerminationReason] = useState<string | null>(
     null,
   );
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [intensity, setIntensity] = useState<VoiceIntensity>(2);
+  const [mood, setMood] = useState<VoiceMood>("natural");
+  const [voiceByPersona, setVoiceByPersona] = useState<Record<string, VoiceSelection>>({});
+  const [speaking, setSpeaking] = useState(false);
+  const [micActive, setMicActive] = useState(false);
+  const [voiceError, setVoiceError] = useState("");
+  const [climaxing, setClimaxing] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recorderRef = useRef<WavRecorder | null>(null);
+  const pendingClimaxRef = useRef(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -72,6 +86,83 @@ export default function ChatApp() {
   }, []);
 
   const currentPersona = personas.find((persona) => persona.id === selected);
+  const currentVoice: VoiceSelection =
+    (selected && voiceByPersona[selected]) ||
+    (currentPersona?.voiceConfig?.geminiVoice
+      ? {
+          provider: "gemini",
+          geminiVoice: currentPersona.voiceConfig.geminiVoice,
+          grokVoice: currentPersona.voiceConfig.grokVoice ?? "ara",
+        }
+      : defaultVoice(currentPersona?.pronouns));
+
+  function setVoiceForPersona(next: VoiceSelection) {
+    if (!selected) return;
+    setVoiceByPersona((prev) => {
+      const updated = { ...prev, [selected]: next };
+      try {
+        localStorage.setItem("companion.voices", JSON.stringify(updated));
+      } catch {
+        // localStorage unavailable (private mode) — session-only is fine.
+      }
+      return updated;
+    });
+  }
+
+  // Restore per-persona voice picks.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("companion.voices");
+      if (raw) setVoiceByPersona(JSON.parse(raw));
+    } catch {
+      // ignore malformed cache
+    }
+  }, []);
+
+  function stopSpeaking() {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    setSpeaking(false);
+  }
+
+  async function speakReply(text: string) {
+    const climax = pendingClimaxRef.current;
+    pendingClimaxRef.current = false;
+    try {
+      setSpeaking(true);
+      const res = await authFetch("/api/voice/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          personaId: selected,
+          voice: currentVoice,
+          intensity,
+          mood,
+          climax,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setVoiceError(data.error ?? "Voice failed.");
+        return;
+      }
+      setVoiceError("");
+      const blob = await res.blob();
+      stopSpeaking();
+      const audio = new Audio(URL.createObjectURL(blob));
+      audioRef.current = audio;
+      audio.onended = () => setSpeaking(false);
+      await audio.play();
+    } catch {
+      setVoiceError("Voice network error.");
+    } finally {
+      if (!audioRef.current) setSpeaking(false);
+    }
+  }
 
   function handleNewChat() {
     setConversationId(undefined);
@@ -87,11 +178,10 @@ export default function ChatApp() {
     handleNewChat();
   }
 
-  async function handleSend(event: React.FormEvent) {
-    event.preventDefault();
-    if (!input.trim() || loading || terminated || !currentPersona) return;
+  async function sendMessage(content: string, opts?: { climax?: boolean }) {
+    if (!content.trim() || loading || terminated || !currentPersona) return;
 
-    const content = input.trim();
+    if (opts?.climax) pendingClimaxRef.current = true;
     setInput("");
     setError("");
     setLoading(true);
@@ -109,6 +199,7 @@ export default function ChatApp() {
           personaId: selected,
           mode: "single",
           message: content,
+          voiceMode: voiceEnabled,
         }),
       });
       const data = (await res.json()) as ChatApiResponse;
@@ -132,10 +223,73 @@ export default function ChatApp() {
         ...prev,
         { role: "assistant", speakerToken: data.speakerToken, content: data.reply },
       ]);
+      if (voiceEnabled) {
+        void speakReply(data.reply);
+      }
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSend(event: React.FormEvent) {
+    event.preventDefault();
+    const content = input.trim();
+    if (!content) return;
+    await sendMessage(content);
+  }
+
+  async function handleClimax() {
+    if (loading || !currentPersona || climaxing) return;
+    setClimaxing(true);
+    try {
+      await sendMessage(
+        "Take me over the edge — I want you to make me come, right now.",
+        { climax: true }
+      );
+    } finally {
+      setClimaxing(false);
+    }
+  }
+
+  async function handleMicDown() {
+    setVoiceError("");
+    try {
+      if (!recorderRef.current) recorderRef.current = new WavRecorder();
+      await recorderRef.current.start();
+      setMicActive(true);
+    } catch {
+      setVoiceError("Microphone unavailable.");
+    }
+  }
+
+  async function handleMicUp() {
+    if (!micActive || !recorderRef.current?.isRecording) return;
+    setMicActive(false);
+    try {
+      const blob = await recorderRef.current.stop();
+      if (blob.size < 2000) {
+        setVoiceError("Too short — hold the button while you talk.");
+        return;
+      }
+      const audioBase64 = await blobToBase64(blob);
+      const res = await authFetch("/api/voice/stt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audioBase64, mime: "audio/wav" }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setVoiceError(data.error ?? "Transcription failed.");
+        return;
+      }
+      const data = (await res.json()) as { transcript: string };
+      if (data.transcript?.trim()) {
+        await sendMessage(data.transcript.trim());
+      }
+    } catch {
+      setVoiceError("Voice input failed.");
     }
   }
 
@@ -317,7 +471,12 @@ export default function ChatApp() {
                       {turn.speakerToken}
                     </span>
                   ) : null}
-                  <p className="whitespace-pre-wrap">{turn.content}</p>
+                  <p className="whitespace-pre-wrap">{stripVoiceCues(turn.content)}</p>
+                  {turn.role === "assistant" && firstVoiceCue(turn.content) ? (
+                    <span className="mt-1 inline-block text-[10px] uppercase tracking-wide text-rose-300/70">
+                      🎙 {firstVoiceCue(turn.content)}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             ))
@@ -334,6 +493,29 @@ export default function ChatApp() {
           </div>
         ) : (
           <>
+            <VoicePanel
+              persona={currentPersona ?? null}
+              premium={tier === "premium"}
+              enabled={voiceEnabled}
+              onEnabledChange={(v) => {
+                setVoiceEnabled(v);
+                if (!v) stopSpeaking();
+              }}
+              intensity={intensity}
+              onIntensityChange={setIntensity}
+              mood={mood}
+              onMoodChange={setMood}
+              voice={currentVoice}
+              onVoiceChange={setVoiceForPersona}
+              speaking={speaking}
+              onStopSpeaking={stopSpeaking}
+              climaxing={climaxing}
+              onClimax={handleClimax}
+              micActive={micActive}
+              onMicDown={handleMicDown}
+              onMicUp={handleMicUp}
+              error={voiceError}
+            />
             {error ? (
               <div className="px-5 pb-2 text-sm text-rose-400">{error}</div>
             ) : null}

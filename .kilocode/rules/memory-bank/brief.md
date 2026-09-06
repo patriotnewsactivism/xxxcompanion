@@ -35,11 +35,11 @@ An adult-oriented AI companion platform for verified adults (18+ / 21+ by jurisd
 
 - Clean typecheck and lint
 - Working chat pipeline with safety enforcement
-- Migrations runnable in sandbox
+- Migrations applied via `bun run db:migrate` (with `DATABASE_URL` set) or Supabase SQL Editor
 
 ## Constraints
 
 - Framework: Next.js 16 + React 19 + Tailwind CSS 4
 - Package manager: Bun
-- DB: Drizzle + SQLite via `@kilocode/app-builder-db` (HTTP API)
+- DB: Drizzle ORM + Postgres (`postgres-js` driver) via Supabase Postgres
 - Adult content only, strict 18+ gating, no minors, no non-consensual content

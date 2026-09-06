@@ -1,6 +1,10 @@
 # Recipe: Add Database
 
-Add SQLite database support with Drizzle ORM for data persistence.
+Add Postgres database support with Drizzle ORM (Supabase) for data persistence.
+
+> **Note**: The older SQLite-over-HTTP approach (`@kilocode/app-builder-db`,
+> `DB_URL`/`DB_TOKEN`) is **deprecated and removed**. Supabase Postgres is the
+> production database. Do NOT reinstall `@kilocode/app-builder-db`.
 
 ## When to Use
 
@@ -11,18 +15,22 @@ Add SQLite database support with Drizzle ORM for data persistence.
 ## Prerequisites
 
 - Base template already set up
-- Understanding of the data model needed
+- A Supabase project linked to the environment
+- `DATABASE_URL` set in `.env.local` (and in Vercel project env for production)
 
 ## Environment
 
-Database credentials (`DB_URL`, `DB_TOKEN`) are automatically provided by the sandbox environment.
+- `DATABASE_URL` — Supabase Postgres connection string (see `.env.example`).
+  - Transaction pooler URI (port 6543) for serverless/Vercel.
+  - Direct URI (port 5432, `db.<ref>.supabase.co`) for local migrations.
+- The app (`src/db/index.ts`) throws at import time if `DATABASE_URL` is unset.
 
 ## Setup Steps
 
 ### Step 1: Install Dependencies
 
 ```bash
-bun add github:Kilo-Org/app-builder-db#main drizzle-orm && bun add -D drizzle-kit
+bun add drizzle-orm postgres && bun add -D drizzle-kit
 ```
 
 ### Step 2: Create All Required Files
@@ -31,11 +39,15 @@ bun add github:Kilo-Org/app-builder-db#main drizzle-orm && bun add -D drizzle-ki
 
 #### `src/db/schema.ts` - Table definitions
 
-```typescript
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+Use Postgres dialect (`drizzle-orm/pg-core`): `pgTable`, `serial` primary keys,
+`text`, `integer` (with `{ mode: "boolean" }` / `{ mode: "timestamp" }` kept as
+in the existing schema).
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+```typescript
+import { pgTable, text, integer, serial } from "drizzle-orm/pg-core";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
@@ -47,19 +59,26 @@ export const users = sqliteTable("users", {
 #### `src/db/index.ts` - Database client
 
 ```typescript
-import { createDatabase } from "@kilocode/app-builder-db";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schema";
 
-export const db = createDatabase(schema);
+const url = process.env.DATABASE_URL;
+
+if (!url) throw new Error("DATABASE_URL is not set.");
+
+const client = postgres(url, { max: 1 });
+
+export const db = drizzle(client, { schema });
 ```
 
 #### `src/db/migrate.ts` - Migration script
 
 ```typescript
-import { runMigrations } from "@kilocode/app-builder-db";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "./index";
 
-await runMigrations(db, {}, { migrationsFolder: "./src/db/migrations" });
+await migrate(db, { migrationsFolder: "./src/db/migrations" });
 ```
 
 #### `drizzle.config.ts` - Drizzle configuration (project root)
@@ -70,9 +89,16 @@ import { defineConfig } from "drizzle-kit";
 export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./src/db/migrations",
-  dialect: "sqlite",
+  dialect: "postgresql",
+  dbCredentials: {
+    url: process.env.DATABASE_URL ?? "",
+  },
 });
 ```
+
+`drizzle-kit generate` does NOT connect to a live database; only the config
+needs the URL to exist. `drizzle-kit` 0.31 loads a local `.env` automatically
+when the `dotenv` package is present.
 
 ### Step 3: Add Package Scripts
 
@@ -93,15 +119,27 @@ Add to `package.json`:
 bun db:generate
 ```
 
-### Step 5: Commit and Push
+This does not need a live DB — safe to run any time. Review the generated
+`src/db/migrations/0000_*.sql` before applying.
+
+### Step 5: Apply Migrations
+
+With `DATABASE_URL` set (direct connection recommended), migrations are applied by:
+
+```bash
+bun run db:migrate
+```
+
+or, alternatively, paste the generated SQL into the Supabase SQL Editor
+(Dashboard → SQL Editor). Local/sandbox environments that cannot run a long-
+lived migration runner should use the SQL Editor path. Production: make sure
+`DATABASE_URL` is set in the Vercel project env.
+
+### Step 6: Commit and Push
 
 ```bash
 bun typecheck && bun lint && git add -A && git commit -m "Add database support" && git push
 ```
-
-Migrations run automatically in the sandbox after push.
-
-⚠️ **Never run `bun db:migrate` manually** - it won't work locally.
 
 ## Usage Examples
 
@@ -138,5 +176,6 @@ After implementing, update `.kilocode/rules/memory-bank/context.md`:
 
 Also update `.kilocode/rules/memory-bank/tech.md`:
 
-- Add Drizzle ORM to dependencies
+- Add Drizzle ORM + postgres-js to dependencies
 - Document database file structure
+- `DATABASE_URL` in the environment variables table (drop `DB_URL`/`DB_TOKEN`)

@@ -1,4 +1,4 @@
-import { runMigrations } from "@kilocode/app-builder-db";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { db } from "./index";
 
-await runMigrations(db, {}, { migrationsFolder: "./src/db/migrations" });
+await migrate(db, { migrationsFolder: "./src/db/migrations" });

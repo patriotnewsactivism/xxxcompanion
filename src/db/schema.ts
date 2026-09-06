@@ -1,23 +1,26 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import {
+  pgTable,
+  text,
+  integer,
+  serial,
+  boolean,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   tier: text("tier").notNull().default("free"),
-  ageVerified: integer("age_verified", { mode: "boolean" })
-    .notNull()
-    .default(false),
-  ageVerifiedAt: integer("age_verified_at", { mode: "timestamp" }),
+  ageVerified: boolean("age_verified").notNull().default(false),
+  ageVerifiedAt: timestamp("age_verified_at"),
   verificationStatus: text("verification_status").notNull().default("pending"),
-  terminated: integer("terminated", { mode: "boolean" }).notNull().default(false),
+  terminated: boolean("terminated").notNull().default(false),
   dailyMessageCount: integer("daily_message_count").notNull().default(0),
-  messageWindowStart: integer("message_window_start", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
-  ),
+  messageWindowStart: timestamp("message_window_start"),
+  createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 });
 
-export const personas = sqliteTable("personas", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const personas = pgTable("personas", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
@@ -38,16 +41,12 @@ export const personas = sqliteTable("personas", {
   greeting: text("greeting"),
   voiceConfig: text("voice_config"),
   avatarPath: text("avatar_path"),
-  isCustom: integer("is_custom", { mode: "boolean" }).notNull().default(false),
-  premiumOnly: integer("premium_only", { mode: "boolean" })
-    .notNull()
-    .default(false),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
-  ),
+  isCustom: boolean("is_custom").notNull().default(false),
+  premiumOnly: boolean("premium_only").notNull().default(false),
+  createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 });
 
-export const userProfiles = sqliteTable("user_profiles", {
+export const userProfiles = pgTable("user_profiles", {
   userId: integer("user_id")
     .primaryKey()
     .references(() => users.id),
@@ -60,13 +59,11 @@ export const userProfiles = sqliteTable("user_profiles", {
   safeWord: text("safe_word"),
   aftercare: text("aftercare"),
   notes: text("notes"),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
-  ),
+  updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
 });
 
-export const conversations = sqliteTable("conversations", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id")
     .notNull()
     .references(() => users.id),
@@ -74,16 +71,12 @@ export const conversations = sqliteTable("conversations", {
   title: text("title").notNull().default("New conversation"),
   personaIds: text("persona_ids").notNull().default("[]"),
   shortTerm: text("short_term").notNull().default("[]"),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
-  ),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
-  ),
+  createdAt: timestamp("created_at").$defaultFn(() => new Date()),
+  updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
 });
 
-export const messages = sqliteTable("messages", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
   conversationId: integer("conversation_id")
     .notNull()
     .references(() => conversations.id),
@@ -91,13 +84,11 @@ export const messages = sqliteTable("messages", {
   role: text("role").notNull(),
   content: text("content").notNull(),
   moderationStatus: text("moderation_status").notNull().default("allowed"),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
-  ),
+  createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 });
 
-export const memories = sqliteTable("memories", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const memories = pgTable("memories", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id")
     .notNull()
     .references(() => users.id),
@@ -105,18 +96,14 @@ export const memories = sqliteTable("memories", {
   key: text("key").notNull(),
   content: text("content").notNull(),
   embedding: text("embedding"),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
-  ),
+  createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 });
 
-export const securityEvents = sqliteTable("security_events", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const securityEvents = pgTable("security_events", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   eventType: text("event_type").notNull(),
   category: text("category").notNull(),
   detail: text("detail").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date()
-  ),
+  createdAt: timestamp("created_at").$defaultFn(() => new Date()),
 });

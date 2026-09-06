@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { isEmbedded } from "@/lib/bridgeClient";
 
 /**
@@ -14,14 +14,24 @@ import { isEmbedded } from "@/lib/bridgeClient";
 const IN_APP_UA =
   /FBAN|FBAV|FBMD|FBSV|FBBV|FBID|FB_IAB|FB4A|FBAV|MessengerForiOS|Messenger|Instagram|Snapchat|TikTok|Line\/|Pinterest/i;
 
-export default function InAppBrowserGate() {
-  const [blocked, setBlocked] = useState(false);
+function subscribeToBrowserContext() {
+  return () => {};
+}
 
-  useEffect(() => {
-    if (isEmbedded()) return; // Surge embed is the one allowed iframe context
-    if (typeof navigator === "undefined") return;
-    if (IN_APP_UA.test(navigator.userAgent)) setBlocked(true);
-  }, []);
+function getBrowserSnapshot() {
+  return !isEmbedded() && IN_APP_UA.test(navigator.userAgent);
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
+export default function InAppBrowserGate() {
+  const blocked = useSyncExternalStore(
+    subscribeToBrowserContext,
+    getBrowserSnapshot,
+    getServerSnapshot,
+  );
 
   if (!blocked) return null;
 

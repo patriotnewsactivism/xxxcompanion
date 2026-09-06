@@ -26,6 +26,16 @@ export const personas = sqliteTable("personas", {
   relationshipDynamic: text("relationship_dynamic").notNull(),
   tone: text("tone").notNull(),
   definition: text("definition").notNull(),
+  appearance: text("appearance"),
+  pronouns: text("pronouns"),
+  kinks: text("kinks").notNull().default("[]"),
+  hardLimits: text("hard_limits").notNull().default("[]"),
+  softLimits: text("soft_limits").notNull().default("[]"),
+  scene: text("scene"),
+  explicitness: integer("explicitness").notNull().default(3),
+  narrativeStyle: text("narrative_style").notNull().default("second"),
+  responseLength: text("response_length").notNull().default("balanced"),
+  greeting: text("greeting"),
   voiceConfig: text("voice_config"),
   avatarPath: text("avatar_path"),
   isCustom: integer("is_custom", { mode: "boolean" }).notNull().default(false),
@@ -33,6 +43,24 @@ export const personas = sqliteTable("personas", {
     .notNull()
     .default(false),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date()
+  ),
+});
+
+export const userProfiles = sqliteTable("user_profiles", {
+  userId: integer("user_id")
+    .primaryKey()
+    .references(() => users.id),
+  displayName: text("display_name"),
+  pronouns: text("pronouns"),
+  gender: text("gender"),
+  turnOns: text("turn_ons").notNull().default("[]"),
+  hardLimits: text("hard_limits").notNull().default("[]"),
+  softLimits: text("soft_limits").notNull().default("[]"),
+  safeWord: text("safe_word"),
+  aftercare: text("aftercare"),
+  notes: text("notes"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
     () => new Date()
   ),
 });

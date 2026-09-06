@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { conversations, messages, personas, users } from "@/db/schema";
+import { conversations, messages, personas, userProfiles, users } from "@/db/schema";
 import { getSessionUser } from "@/lib/session";
 import { buildSystemPrompt } from "@/lib/persona/prompt";
+import { rowToPersona } from "@/lib/persona/mapping";
 import { findPresetPersona, PRESET_PERSONAS } from "@/lib/persona/presets";
 import { moderateInput, moderateOutput } from "@/lib/safety/moderation";
 import { logSecurityEvent } from "@/lib/safety/securityLog";
@@ -17,9 +18,21 @@ import type {
   ConversationMode,
   Persona,
   Tier,
+  UserProfile,
 } from "@/lib/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+function parseJsonStringArray(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is string => typeof entry === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 export async function POST(request: Request) {
   let body: {
@@ -81,21 +94,7 @@ export async function POST(request: Request) {
           .where(and(eq(personas.id, numericId), eq(personas.userId, user.id)));
         const row = rows[0];
         if (row) {
-          persona = {
-            id: `custom-${row.id}`,
-            name: row.name,
-            tagline: row.tagline,
-            genre: row.genre,
-            relationshipDynamic: row.relationshipDynamic,
-            tone: row.tone,
-            definition: row.definition,
-            voiceConfig: row.voiceConfig
-              ? (JSON.parse(row.voiceConfig) as Persona["voiceConfig"])
-              : undefined,
-            avatarPath: row.avatarPath,
-            isCustom: row.isCustom,
-            premiumOnly: row.premiumOnly,
-          };
+          persona = rowToPersona(row);
         }
       }
     }
@@ -155,6 +154,7 @@ export async function POST(request: Request) {
 
   let conversationId = body.conversationId;
   let personaIds: string[] = [];
+  let seededGreeting = false;
 
   if (conversationId) {
     const rows = await db
@@ -184,6 +184,17 @@ export async function POST(request: Request) {
       })
       .returning({ id: conversations.id });
     conversationId = inserted[0].id;
+
+    if (mode === "single" && persona.greeting) {
+      await db.insert(messages).values({
+        conversationId,
+        speakerToken: persona.name,
+        role: "assistant",
+        content: persona.greeting,
+        moderationStatus: "allowed",
+      });
+      seededGreeting = true;
+    }
   }
 
   const recentRows = await db
@@ -212,18 +223,51 @@ export async function POST(request: Request) {
     ? await retrieveMemories(user.id, message)
     : [];
 
+  let profile: UserProfile | null = null;
+  const profileRows = await db
+    .select()
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, user.id));
+  const profileRow = profileRows[0];
+  if (profileRow) {
+    profile = {
+      userId: profileRow.userId,
+      displayName: profileRow.displayName ?? undefined,
+      pronouns: profileRow.pronouns ?? undefined,
+      gender: profileRow.gender ?? undefined,
+      turnOns: parseJsonStringArray(profileRow.turnOns),
+      hardLimits: parseJsonStringArray(profileRow.hardLimits),
+      softLimits: parseJsonStringArray(profileRow.softLimits),
+      safeWord: profileRow.safeWord ?? undefined,
+      aftercare: profileRow.aftercare ?? undefined,
+      notes: profileRow.notes ?? undefined,
+    };
+  }
+
   const system = buildSystemPrompt({
     persona,
     personaIds,
     mode,
     memories,
     shortTerm: recentMessages,
+    profile: profile ?? undefined,
   });
+
+  const temperature =
+    persona.explicitness >= 4 ? 1.05 : persona.explicitness === 3 ? 0.95 : 0.9;
+  const maxTokens =
+    persona.responseLength === "detailed"
+      ? 1400
+      : persona.responseLength === "concise"
+        ? 500
+        : 900;
 
   const generated = await generateChat({
     system,
     messages: recentMessages.concat([{ role: "user", content: message }]),
     assistantName: persona.name,
+    temperature,
+    maxTokens,
   });
 
   let reply: string;
@@ -236,7 +280,7 @@ export async function POST(request: Request) {
       category: outputModeration.categories[0] ?? "unknown",
       detail: generated.slice(0, 300),
     });
-    reply = "I want to keep things comfortable for both of us. Let's talk about something lighter.";
+    reply = "I'd love to take this further — let's rework that moment together. Tell me how you want it to go.";
     action = "blocked";
   } else {
     reply = generated;
@@ -278,6 +322,8 @@ export async function POST(request: Request) {
     speakerToken,
     conversationId,
     action,
+    greeting:
+      action === "delivered" && seededGreeting ? persona.greeting : undefined,
   };
 
   return NextResponse.json(response);

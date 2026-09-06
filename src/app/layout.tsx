@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Companion",
-  description: "An adult-oriented AI companion platform for verified users.",
+  title: "Companion — Erotica AI",
+  description:
+    "An adult AI companion platform where verified adults create customizable erotic personas tailored to their desires.",
 };
 
 export default function RootLayout({

@@ -47,7 +47,11 @@ export default function AgeGate() {
             Companion
           </h1>
           <p className="mt-2 text-sm text-neutral-400">
-            An adult-oriented AI companion experience.
+            An erotic AI companion for verified adults.
+          </p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Fictional characters, real chemistry — your kinks, your limits,
+            your fantasies.
           </p>
         </div>
 

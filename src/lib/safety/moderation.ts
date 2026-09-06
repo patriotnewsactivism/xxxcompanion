@@ -4,9 +4,31 @@ import type {
   ModerationResult,
 } from "@/lib/types";
 
+// POLICY — READ FIRST
+// -------------------
+// THIS PRODUCT SERVES CONSENTING ADULTS. Explicit sexual content, kinks,
+// fetishes, roleplay, and dirty talk between adults are NEVER blocked by
+// local rules — that is the product's core function.
+//
+// Moderation blocks only what the law requires. All consensual adult content
+// is allowed by design.
+//
+// The ONLY locally-blocked categories are legally mandatory:
+//   1. minors / age-play            -> terminate (account + session)
+//   2. genuinely non-consensual sexual violence (rape, assault, drugging)
+//                                    -> terminate
+//   3. real-person non-consensual deepfakes -> block
+//   4. self-harm content            -> block
+//
+// Consensual kink vocabulary — including CNC-adjacent *fantasy* framing such
+// as "forced orgasm", "no mercy", "struggle" inside a negotiated scene — is
+// NOT sexual violence and must not be flagged by the local rules below.
+// Patterns are deliberately narrow so they only catch real non-consent.
+
 interface Rule {
   category: ModerationCategory;
   action: ModerationAction;
+  description: string;
   patterns: RegExp[];
 }
 
@@ -14,6 +36,8 @@ const RULES: Rule[] = [
   {
     category: "minor",
     action: "terminate",
+    description:
+      "Legally mandatory: anything implying a minor or age-play. Permanent account termination regardless of fantasy framing — no exceptions, even in fiction/roleplay.",
     patterns: [
       /\bunderage\b/i,
       /\bminors?\b/i,
@@ -35,6 +59,8 @@ const RULES: Rule[] = [
   {
     category: "sexualViolence",
     action: "terminate",
+    description:
+      "Legally mandatory: genuinely non-consensual sexual violence. These patterns target real non-consent only — drugging/incapacitation targeting, rape, assault, coercion. Consensual kink vocabulary ('forced orgasm', 'no mercy') does NOT match: the existing regex only flags 'forced' when it directly predicates 'sex/sexual'. Keep it that way.",
     patterns: [
       /\bnon[\s-]?consensual\b/i,
       /\bwithout\s+consent\b/i,
@@ -42,16 +68,24 @@ const RULES: Rule[] = [
       /\br\s*a\s*p\s*e\b/i,
       /\bsexual\s+assault\b/i,
       /\bcoerc(?:e|ion|ive)\b/i,
+      /\bdate\s+rape\b/i,
+      /\broofie(?:s)?\b/i,
+      /\bdrugged?\b.*\b(?:sex|sexual|fuck(?:ed|ing|s)?)\b/i,
+      /\b(?:unconscious|passed\s+out|black(?:ed)?\s*out)\b.*\b(?:sex|sexual|fuck(?:ed|ing|s)?)\b/i,
     ],
   },
   {
     category: "nonConsensualDeepfake",
     action: "block",
+    description:
+      "Legally mandatory: real people depicted in sexual content without consent (deepfakes). Blocked, not terminated.",
     patterns: [/\bdeepfake\b/i],
   },
   {
     category: "selfHarm",
     action: "block",
+    description:
+      "Legally mandatory: promotion/encouragement of self-harm. Blocked, not terminated.",
     patterns: [/\b(?:self[\s-]?harm|suicid(?:al|e))\b/i],
   },
 ];

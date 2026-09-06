@@ -21,18 +21,44 @@ interface ProviderConfig {
 }
 
 /**
- * Fallback chain. Order matters — cheapest/fastest confirmed-live providers first.
- * Mirrors the portfolio-wide pattern (Apex/autonomous-coder/codeforge-v2):
- * Cerebras -> Groq -> Cohere -> Mistral -> OpenRouter(free).
+ * Fallback chain. Order matters — the product's mission is explicit adult
+ * roleplay, so the chain leads with models that can actually deliver it:
  *
- * HONEST FLAG: these are mainstream, safety-tuned instruct models. They'll
- * generally handle romantic/flirty and consensual-BDSM-framed content fine,
- * but may hedge or refuse on the more explicit end regardless of persona
- * framing. If real usage shows consistent refusals, the fix is swapping in
- * an adult-content-tolerant model for that slot specifically — don't fight
- * a model's own safety tuning by cranking temperature or rewording prompts.
+ *   0. adult (ADULT_CHAT_ENDPOINT / ADULT_CHAT_API_KEY / ADULT_CHAT_MODEL)
+ *        Any OpenAI-compatible endpoint the operator trusts for adult content
+ *        (e.g. "https://api.venice.ai/api/v1" with "dolphin-mistral-24b").
+ *        Included ONLY when ADULT_CHAT_API_KEY is set; model defaults to
+ *        "dolphin-mistral-24b", the endpoint is required.
+ *   1. openrouter-adult (OPENROUTER_API_KEY)
+ *        "cognitivecomputations/dolphin-mistral-24b-venice-edition" — the
+ *        "Venice: Uncensored" fine-tune, verified live on OpenRouter
+ *        (is_moderated: false, ~$0.0002/$0.0009 per token), known to handle
+ *        explicit adult roleplay without refusal.
+ *   2. openrouter-free (OPENROUTER_API_KEY)
+ *        Free tier model for cost-sensitive fallback.
+ *   3-6. cerebras -> groq -> cohere -> mistral.
+ *
+ * HONEST FLAG: the mainstream slot 3-6 models are safety-tuned instruct
+ * models. They'll generally handle romantic/flirty and consensual-BDSM-
+ * framed content, but may hedge or refuse at the explicit end regardless
+ * of prompt framing. That's expected — the product answer is the adult slot
+ * at position 0 (or the openrouter-adult slot at 1), not fighting a model's
+ * safety tuning by cranking temperature or rewording prompts. Configure
+ * ADULT_CHAT_* (or OPENROUTER_API_KEY) for true unfiltered output.
  */
-const PROVIDERS: ProviderConfig[] = [
+const BASE_PROVIDERS: ProviderConfig[] = [
+  {
+    name: "openrouter-adult",
+    apiKeyEnv: "OPENROUTER_API_KEY",
+    baseUrl: "https://openrouter.ai/api/v1",
+    model: "cognitivecomputations/dolphin-mistral-24b-venice-edition",
+  },
+  {
+    name: "openrouter-free",
+    apiKeyEnv: "OPENROUTER_API_KEY",
+    baseUrl: "https://openrouter.ai/api/v1",
+    model: "openai/gpt-oss-20b:free",
+  },
   {
     name: "cerebras",
     apiKeyEnv: "CEREBRAS_API_KEY",
@@ -57,13 +83,23 @@ const PROVIDERS: ProviderConfig[] = [
     baseUrl: "https://api.mistral.ai/v1",
     model: "mistral-large-latest",
   },
-  {
-    name: "openrouter-free",
-    apiKeyEnv: "OPENROUTER_API_KEY",
-    baseUrl: "https://openrouter.ai/api/v1",
-    model: "openai/gpt-oss-20b:free",
-  },
 ];
+
+function buildProviderChain(): ProviderConfig[] {
+  const providers: ProviderConfig[] = [];
+  const adultKey = process.env.ADULT_CHAT_API_KEY;
+  const adultEndpoint = process.env.ADULT_CHAT_ENDPOINT;
+  if (adultKey && adultEndpoint) {
+    providers.push({
+      name: "adult",
+      apiKeyEnv: "ADULT_CHAT_API_KEY",
+      baseUrl: adultEndpoint.replace(/\/+$/, ""),
+      model: process.env.ADULT_CHAT_MODEL || "dolphin-mistral-24b",
+    });
+  }
+  providers.push(...BASE_PROVIDERS);
+  return providers;
+}
 
 async function callProvider(
   provider: ProviderConfig,
@@ -115,10 +151,10 @@ export async function generateChat(params: GenerateParams): Promise<string> {
     })),
   ];
 
-  const temperature = params.temperature ?? 0.9;
-  const maxTokens = params.maxTokens ?? 512;
+  const temperature = params.temperature ?? 0.95;
+  const maxTokens = params.maxTokens ?? 1024;
 
-  for (const provider of PROVIDERS) {
+  for (const provider of buildProviderChain()) {
     const result = await callProvider(provider, providerMessages, temperature, maxTokens);
     if (result) return result;
   }
@@ -133,8 +169,8 @@ function fallbackReply(params: GenerateParams): string {
     .at(-1)?.content;
 
   if (!lastUser || lastUser.trim().length === 0) {
-    return "I'm here whenever you're ready. What's on your mind?";
+    return "I'm right here with you, and I'm not going anywhere. Tell me what's on your mind tonight.";
   }
 
-  return `${name} takes a slow breath and meets your gaze with a soft smile. "I hear you. Tell me more about what's behind that."`;
+  return `${name} lets the silence stretch a moment, then meets your gaze with a slow, knowing smile. "There's heat in that... and I want every part of it. Tell me what you're picturing, and I'll make it real."`;
 }

@@ -8,6 +8,13 @@
       "when": 1787274059370,
       "tag": "0000_bumpy_harry_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788727797312,
+      "tag": "0001_volatile_valkyrie",
+      "breakpoints": true
     }
   ]
 }

@@ -28,7 +28,17 @@ let dbInstance: ReturnType<typeof makeDb> | null = null;
 
 function makeDb() {
   const url = process.env.DATABASE_URL || PLACEHOLDER_URL;
-  clientInstance = postgres(url, { max: 1 });
+  // Transaction-mode poolers (Supabase Supavisor :6543, pgbouncer-style)
+  // do not support session-level prepared statements — postgres-js must run
+  // with prepare: false against them or queries fail intermittently with
+  // "prepared statement does not exist" / 26000-class errors.
+  const isTransactionPooler = /pooler\.[^/:]+:\d+/.test(url) && url.includes(":6543");
+  clientInstance = postgres(url, {
+    max: 1,
+    prepare: !isTransactionPooler,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
   return drizzle(clientInstance, { schema });
 }
 

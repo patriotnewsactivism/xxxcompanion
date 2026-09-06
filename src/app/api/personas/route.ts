@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { personas } from "@/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUserForRequest } from "@/lib/session";
 import { PRESET_PERSONAS } from "@/lib/persona/presets";
 import { DEFAULT_PERSONA_FIELDS } from "@/lib/persona/options";
 import { rowToPersona } from "@/lib/persona/mapping";
@@ -90,8 +90,8 @@ function asResponseLength(value: unknown): ResponseLength {
     : DEFAULT_PERSONA_FIELDS.responseLength;
 }
 
-export async function GET() {
-  const user = await getSessionUser();
+export async function GET(request: Request) {
+  const user = await getSessionUserForRequest(request);
   const tier: Tier = user && isTier(user.tier) ? user.tier : "free";
 
   let customPersonas: Persona[] = [];
@@ -108,7 +108,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getSessionUser();
+  const user = await getSessionUserForRequest(request);
   if (!user || !user.ageVerified) {
     return NextResponse.json({ error: "Age verification required." }, { status: 403 });
   }

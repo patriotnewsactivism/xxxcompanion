@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authFetch } from "@/lib/bridgeClient";
 import type {
   ExplicitnessLevel,
   NarrativeStyle,
@@ -291,7 +292,7 @@ export default function PersonaEditor({
     }
     setSubmitting(true);
     try {
-      const res = await fetch("/api/personas", {
+      const res = await authFetch("/api/personas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

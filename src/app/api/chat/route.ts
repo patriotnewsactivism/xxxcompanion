@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { conversations, messages, personas, userProfiles, users } from "@/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUserForRequest } from "@/lib/session";
 import { buildSystemPrompt } from "@/lib/persona/prompt";
 import { rowToPersona } from "@/lib/persona/mapping";
 import { findPresetPersona, PRESET_PERSONAS } from "@/lib/persona/presets";
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const user = await getSessionUser();
+  const user = await getSessionUserForRequest(request);
   if (!user) {
     return NextResponse.json(
       { error: "Age verification required." },

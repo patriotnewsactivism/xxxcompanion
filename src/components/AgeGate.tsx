@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { authFetch } from "@/lib/bridgeClient";
 
 export default function AgeGate() {
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -21,7 +22,7 @@ export default function AgeGate() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/verify-age", {
+      const res = await authFetch("/api/verify-age", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dateOfBirth, consent }),

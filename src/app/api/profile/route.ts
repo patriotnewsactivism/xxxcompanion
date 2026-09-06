@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { userProfiles } from "@/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUserForRequest } from "@/lib/session";
 import { normalizeTags } from "@/lib/kinks/taxonomy";
 import type { UserProfile } from "@/lib/types";
 
@@ -56,8 +56,8 @@ function asStringArray(value: unknown): string[] {
   return normalizeTags(strings).slice(0, MAX_ARRAY_ITEMS);
 }
 
-export async function GET() {
-  const user = await getSessionUser();
+export async function GET(request: Request) {
+  const user = await getSessionUserForRequest(request);
   if (!user) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }
@@ -72,7 +72,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const user = await getSessionUser();
+  const user = await getSessionUserForRequest(request);
   if (!user) {
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   }

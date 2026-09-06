@@ -36,6 +36,7 @@ function makeDb() {
   clientInstance = postgres(url, {
     max: 1,
     prepare: !isTransactionPooler,
+    ssl: url.includes("supabase.com") ? "require" : undefined,
     idle_timeout: 20,
     connect_timeout: 10,
   });
@@ -45,6 +46,15 @@ function makeDb() {
 /** True when the runtime has a real database configured. */
 export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL);
+}
+
+/** Close the lazily-created client, primarily for one-shot migration scripts. */
+export async function closeDatabase(): Promise<void> {
+  if (!clientInstance) return;
+
+  await clientInstance.end();
+  clientInstance = null;
+  dbInstance = null;
 }
 
 /**

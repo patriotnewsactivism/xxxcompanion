@@ -18,7 +18,7 @@
 
 | Variable | Purpose |
 | -------- | ------- |
-| `DATABASE_URL` | Supabase Postgres connection string (REQUIRED — app throws if unset) |
+| `DATABASE_URL` | Supabase Postgres connection string (required for runtime DB queries; may be absent during build) |
 | `ADULT_CHAT_ENDPOINT`, `ADULT_CHAT_API_KEY`, `ADULT_CHAT_MODEL` | Adult-first chat provider slot (OpenAI-compatible) |
 | `OPENROUTER_API_KEY`, `CEREBRAS_API_KEY`, `GROQ_API_KEY`, `COHERE_API_KEY`, `MISTRAL_API_KEY` | Fallback chat providers (priority order) |
 | `MODERATION_API_URL`, `MODERATION_API_KEY` | External safety classifier |
@@ -43,7 +43,8 @@ bun db:migrate     # Apply migrations — requires DATABASE_URL (direct connecti
 
 ## Database Schema
 
-`users`, `personas`, `conversations`, `messages`, `memories`, `security_events`.
+`users`, `personas`, `user_profiles`, `conversations`, `messages`, `memories`,
+`security_events`.
 
 Timestamps use Postgres `timestamp` columns (Drizzle `mode: "date"`) with
 `$defaultFn` (app-level default, no SQL DEFAULT). Booleans use Postgres
@@ -53,14 +54,20 @@ embedding, voiceConfig). Primary keys are `serial`.
 ## Key Dependencies
 
 - `drizzle-orm`, `drizzle-kit`, `postgres` (postgres-js)
-- DB accessed via `drizzle-orm/postgres-js`; only usable server-side
-  (`src/db/index.ts` throws at import time if `DATABASE_URL` is unset)
+- DB accessed via a build-safe lazy `drizzle-orm/postgres-js` client; only
+  usable server-side (a placeholder URL permits build-time module inspection,
+  while a real query still requires `DATABASE_URL`)
 
 ## Constraints
 
-- `DATABASE_URL` must be set at runtime or the db module throws
+- `DATABASE_URL` must be set for runtime queries; it may be absent while
+  Next.js performs build-time module inspection
 - Migrations are applied via `bun run db:migrate` (env set) or by pasting the
   generated SQL into the Supabase SQL Editor; no sandbox auto-migration
 - Use the TRANSACTION pooler URI in serverless/Vercel; the direct URI for
   local drizzle-kit / long-lived migration runs
+- postgres-js uses SSL and `prepare: false`; Supabase transaction mode on port
+  6543 does not support prepared statements
+- RLS is enabled on all public application tables without Data API policies;
+  application access is through the server-only Postgres connection
 - Next.js Google fonts (`Geist`) kept from template

@@ -8,6 +8,20 @@
       "when": 1788728745569,
       "tag": "0000_first_richard_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788728746569,
+      "tag": "0001_surge_bridge",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788731809089,
+      "tag": "0002_enable_rls",
+      "breakpoints": true
     }
   ]
 }

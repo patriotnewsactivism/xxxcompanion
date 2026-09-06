@@ -18,8 +18,8 @@ src/
 │   └── ChatApp.tsx           # Client chat + persona picker
 ├── db/
 │   ├── schema.ts             # Drizzle tables
-│   ├── index.ts              # createDatabase
-│   ├── migrate.ts
+│   ├── index.ts              # postgres-js + Drizzle client (server only)
+│   ├── migrate.ts            # Drizzle migration runner + clean shutdown
 │   └── migrations/
 └── lib/
     ├── types.ts              # Domain types
@@ -63,6 +63,8 @@ Order matters and each stage gates the next:
 - Server Components: gate pages via `cookies()` (`isAgeVerified`)
 - Client Components: `AgeGate`, `ChatApp` (fetch-only, no DB)
 - DB access only in route handlers / server libs
+- Supabase public tables have RLS enabled with no Data API policies; the app
+  uses its server-side Postgres connection instead of browser-side Data API access
 
 ### 3. Safety Classifier Chain
 
